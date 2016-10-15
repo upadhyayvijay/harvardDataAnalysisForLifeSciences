@@ -1,0 +1,106 @@
+---
+title: "Week 2"
+author: "VijayUpadhyay"
+date: "14 October 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Examples
+
+### Father-Son Height Data
+
+```{r}
+library(UsingR)
+
+data("father.son", package = "UsingR")
+
+linearModel <- lm(father.son$sheight ~ father.son$fheight)
+summary(linearModel)
+plot(father.son$sheight, father.son$fheight)
+
+y <- linearModel$coefficients[1] + linearModel$coefficients[2]*father.son$fheight
+lines(father.son$fheight, y, col=2)
+abline(linearModel)
+
+sse1 <- crossprod(father.son$sheight - y)
+```
+
+
+
+```{r}
+library(UsingR)
+
+data("father.son", package = "UsingR")
+parameter <- father.son$fheight
+output <- father.son$sheight
+plot(output, parameter)
+
+parameterNew <- cbind(1, parameter)
+theta <- (solve(crossprod(parameterNew))) %*% (crossprod(parameterNew, output))
+y <- parameterNew %*% theta
+lines(parameter, y, col = 2)
+
+sse2 <- crossprod(output - y)
+```
+
+
+
+
+```{r}
+
+g <- 9.8                                                        ## meters per second
+h0 <- 56.67
+v0 <- 0
+n <- 25
+tt <- seq(0,3.4,len=n)                                          ##time in secs, t is a base function
+
+X <- cbind(1,tt,tt^2)
+A <- solve(crossprod(X))%*%t(X)
+
+set.seed(1)
+
+theta <- replicate(100000, {
+  y <- h0 + v0 *tt - 0.5* g*tt^2 + rnorm(n,sd=1)
+  t(A %*% y)
+}) 
+
+sequence <- seq(from = 3, to = 300000, by = 3)
+gParameter <- 2 * theta[sequence]
+length(gParameter)
+
+sd(gParameter)
+```
+
+
+```{r}
+
+library(UsingR)
+
+x = father.son$fheight
+y = father.son$sheight
+n = length(y)
+
+N =  50
+set.seed(1)
+theta <- replicate(10000, {
+  index = sample(n,N)
+  sampledat = father.son[index,]
+  x = sampledat$fheight
+  y = sampledat$sheight
+  lm(y~x)$coef
+})
+
+sequence2 <- seq(from = 2, to = 20000, by = 2)
+slope <- theta[sequence2]
+sd(slope)
+```
+
+```{r}
+
+cov(x, y)
+
+```
