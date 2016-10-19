@@ -1,0 +1,209 @@
+---
+title: "Week 4"
+author: "VijayUpadhyay"
+date: "18 October 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+
+
+```{r}
+
+library(limma)
+
+species <- factor(c("A","A","B","B"))
+condition <- factor(c("control","treated","control","treated"))
+
+X <- model.matrix(~ species + condition)
+colnames(X)
+makeContrasts(speciesB - conditiontreated, levels = X)
+
+```
+
+
+```{r}
+library(contrast)
+
+dataFile <- "/home/vijay/Documents/gitRepos/dagdata/inst/extdata/spider_wolff_gorb_2013.csv"
+spider <- read.csv(dataFile, skip=1)
+
+colnames(spider)
+modelMat <- model.matrix(~ type + leg, data = spider)
+
+makeContrasts(legL4 - legL2, levels = modelMat)
+fit <- lm(friction ~ type + leg, data = spider)
+
+L4vsL2 <- contrast(fit,list(leg="L4",type="pull"),list(leg="L2",type="pull"))
+L4vsL2
+```
+
+
+```{r}
+
+Sigma <- sum(fit$residuals^2)/(nrow(modelMat) - ncol(modelMat)) * solve(crossprod(modelMat))
+
+```
+
+
+```{r}
+
+spider$log2friction <- log2(spider$friction)
+boxplot(log2friction ~ type*leg, data=spider)
+
+modelMat2 <- model.matrix(~ type + leg + type:leg, data = spider)
+
+linearModel1 <- lm(log2friction ~ type + leg, data = spider)
+linearModel2 <- lm(log2friction ~ modelMat2, data = spider)
+L4vsL2 <- contrast(linearModel1,list(leg="L4",type="push"),list(leg="L1",type="push"))
+
+```
+
+
+```{r}
+library(multcomp)
+
+modelMat2 <- model.matrix(~ type + leg + type:leg, data = spider)
+
+linearModel2 <- lm(log2friction ~ modelMat2, data = spider)
+linearModel3 <- lm(log2friction ~ type + leg + type:leg, data = spider)
+
+coefs2 <- linearModel2$coefficients
+coefs3 <- linearModel3$coefficients
+coeffSelection <- matrix(c(0,0,0,0,0,1,1,1), 1)
+
+modelInteraction <- glht(linearModel3, linfct = coeffSelection)
+
+
+anova(linearModel3)
+```
+
+
+```{r}
+
+L2vsL1Pull <- contrast(linearModel3,list(leg="L2",type="pull"),list(leg="L1",type="pull"))
+L2vsL1Pull
+
+```
+
+```{r}
+
+L2vsL1Push <- contrast(linearModel3,list(leg="L2",type="pull"),list(leg="L1",type="pull"))
+L2vsL1Push
+
+```
+
+
+```{r}
+
+N <- 40
+p <- 4
+group <- factor(rep(1:p,each=N/p))
+X <- model.matrix(~ group)
+
+calculateFvalue <- function(Y){
+  
+  mu0 <- mean(Y)
+  initial.ss <- sum((Y - mu0)^2)
+
+  s <- split(Y, group)
+  after.group.ss <- sum(sapply(s, function(x) sum((x - mean(x))^2)))
+
+  group.ss <- initial.ss - after.group.ss
+
+  group.ms <- group.ss / (p - 1)
+  after.group.ms <- after.group.ss / (N - p)
+
+  f.value <- group.ms / after.group.ms
+  return(f.value)
+  
+}
+
+set.seed(1)
+
+Fvalues <- replicate(1000, {
+  Y <- rnorm(N,mean=42,7)
+  calculateFvalue(Y)
+}) 
+
+
+mean(Fvalues)
+```
+
+
+
+```{r}
+
+A <- matrix(c(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 1, 0, 1), nrow = 4, byrow = TRUE)
+solve(crossprod(A))
+
+B <- matrix(c(1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0), nrow = 4, byrow = TRUE)
+solve(crossprod(B))
+
+C <- matrix(c(1, 0, 0, 1, 1, 2, 1, 2, 4, 1, 3, 6), nrow = 4, byrow = TRUE)
+solve(crossprod(C))
+
+D <- matrix(c(1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1), nrow = 6, byrow = TRUE)
+solve(crossprod(D))
+
+E <- matrix(c(1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1), nrow = 4, byrow = TRUE)
+solve(crossprod(E))
+
+F <- matrix(c(1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0), nrow = 6, byrow = TRUE)
+solve(crossprod(F))
+
+```
+
+###################
+```{r}
+
+sex <- factor(rep(c("female","male"),each=4))
+trt <- factor(c("A","A","B","B","C","C","D","D"))
+
+X <- model.matrix( ~ sex + trt)
+qr(X)$rank
+Y <- 1:8
+
+makeYstar <- function(a,b) Y - X[,2] * a - X[,5] * b
+
+fitTheRest <- function(a,b) {
+  Ystar <- makeYstar(a,b)
+  Xrest <- X[,-c(2,5)]
+  betarest <- solve(t(Xrest) %*% Xrest) %*% t(Xrest) %*% Ystar
+  residuals <- Ystar - Xrest %*% betarest
+  sum(residuals^2)
+}
+
+fitTheRest(1, 2)
+
+```
+
+```{r}
+
+betas = expand.grid(-2:8,-2:8)
+rss = apply(betas,1,function(x) fitTheRest(x[1],x[2]))
+
+
+
+```
+
+
+```{r}
+
+fit <- lm(friction ~ type + leg, data=spider)
+betahat <- coef(fit)
+Y <- matrix(spider$friction, ncol=1)
+X <- model.matrix(~ type + leg, data=spider)
+
+QR <- qr(X)
+Q <- qr.Q( QR )
+R <- qr.R( QR )
+
+crossprod(Q,Y)
+
+```

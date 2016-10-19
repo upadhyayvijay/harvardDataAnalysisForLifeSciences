@@ -104,3 +104,61 @@ sd(slope)
 cov(x, y)
 
 ```
+
+
+```{r}
+
+library(UsingR)
+
+x = father.son$fheight
+y = father.son$sheight
+
+n = length(y)
+N = 50
+
+set.seed(1)
+index = sample(n,N)
+sampledat = father.son[index,]
+
+x = sampledat$fheight
+y = sampledat$sheight
+
+betahat = lm(y~x)$coef
+
+fit = lm(y ~ x)
+yi <- fit$fitted.values
+head(yi)
+
+residue <- y - yi
+residueSquare <- r*r
+SSR <- sum(residueSquare)
+
+```
+
+
+```{r}
+
+sigma2 = SSR/(N-2)
+X = cbind(rep(1,N), x)
+
+solve(crossprod(X))
+
+```
+
+
+```{r}
+
+mat <- (diag(solve(crossprod(X))))*sigma2
+stdErr <- sqrt(mat)
+
+```
+
+
+```{r}
+
+x <- c("nx", "nx", "nx", "nx", "nx", "ny", "ny", "ny", "ny", "ny", "ny", "ny")
+X <- model.matrix(~x)
+
+cross <- crossprod(X)
+
+```
